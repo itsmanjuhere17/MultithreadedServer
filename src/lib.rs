@@ -1,15 +1,17 @@
 use std::thread;
-use std::sync::mpsc;
-
+use std::sync::{mpsc,Arc,Mutex};
+use std::rc::Rc;
 struct WorkerThread{
     thread: thread::JoinHandle<()>,
     id:usize
 }
 
 impl WorkerThread{
-    fn new(id:usize)->WorkerThread{
+    fn new(id:usize , receiver:Arc<Mutex<mpsc::Receiver<Job>>>)->WorkerThread{
         WorkerThread{
-            thread:thread::spawn(||{}),
+            thread:thread::spawn(||{
+                receiver;
+            }),
             id
         }
     }
@@ -26,9 +28,10 @@ impl ThreadPool{
     pub fn new(num:usize)->ThreadPool{
         assert!(num==0);
         let (sender,receiver) = mpsc::channel();
+        let receiver = Arc::new(Mutex::new(receiver)); //We cannot use, RC here as receiver is shared between threads.Mutex is needed here as receiver will be mutated between threads.
         let mut worker_threads = Vec::with_capacity(num);
         for id in 0..num{
-            worker_threads.push(WorkerThread::new(id));
+            worker_threads.push(WorkerThread::new(id,Arc::clone(&receiver)));
         }
         ThreadPool{
             worker_threads,
