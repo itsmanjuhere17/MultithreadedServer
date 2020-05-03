@@ -9,12 +9,13 @@ fn main() {
     println!("Hello, world!");
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
     let pool = ThreadPool::new(4);
-    for stream in listener.incoming(){
+    for stream in listener.incoming().take(2){ //Here, take will only consider first two requests. Its a method in iterator.
         let stream = stream.unwrap();
         pool.execute(||{
             handle_connection(stream);
         });
     }
+    println!("@@@@@@@@@@@@@@@@@@@ Exiting main @@@@@@@@@@@@@@@@@@@@@@@");
 }
 
 fn handle_connection(mut stream:TcpStream){
@@ -23,14 +24,14 @@ fn handle_connection(mut stream:TcpStream){
     let request_line = b"GET / HTTP/1.1\r\n";
     let sleep_line = b"GET /sleep HTTP/1.1\r\n";
     let (status,filename) = if buffer.starts_with(request_line) {
-        ("HTTP/1.1  OK\r\n\r\n", "hello.html")
+        ("HTTP/1.1  OK\r\n\r\n", "../../hello.html")
     }
     else if buffer.starts_with(sleep_line){
         thread::sleep(Duration::from_secs(5));
-        ("HTTP/1.1  OK\r\n\r\n", "hello.html")
+        ("HTTP/1.1  OK\r\n\r\n", "../../hello.html")
     }
     else{
-        ("HTTP/1.1 404 NOT FOUND\r\n\r\n","hello_error.html")
+        ("HTTP/1.1 404 NOT FOUND\r\n\r\n","../../hello_error.html")
     };
     let html_response = fs::read_to_string(filename).unwrap();
     //println!("Htnml resposne is:{}",html_response);
